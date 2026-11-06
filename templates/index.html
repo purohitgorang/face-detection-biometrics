@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric Access Attendance Portal</title>
+    <!-- Google Fonts: Inter for UI -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #f8f9fa;        /* Light Grey Background */
+            --bg-card: #ffffff;        /* Pure White Card Panels */
+            --bg-nested: #f1f3f5;      /* Nested Light Panels */
+            --border-color: #dee2e6;   /* Gray border */
+            --primary: #714B67;        /* Odoo Purple Brand Primary */
+            --primary-hover: #5a3c52;  /* Darker Odoo Purple */
+            --success: #00A09D;        /* Odoo Teal/Green Brand */
+            --success-bg: rgba(0, 160, 157, 0.08);
+            --warning: #e67e22;        /* Flat Orange Warning */
+            --warning-bg: rgba(230, 126, 34, 0.08);
+            --danger: #d9534f;         /* Red Alert */
+            --danger-bg: rgba(217, 83, 79, 0.08);
+            --text-main: #212529;      /* Dark Charcoal text */
+            --text-muted: #6c757d;    /* Slate Gray text */
+            --text-on-primary: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Top Header Bar */
+        .header-bar {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 24px;
+            background: transparent;
+        }
+
+        .header-title-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            text-transform: uppercase;
+            color: var(--primary);
+        }
+
+        .system-badge {
+            background: var(--success-bg);
+            border: 1px solid var(--success);
+            color: var(--success);
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .system-badge .dot {
+            width: 6px;
+            height: 6px;
+            background-color: var(--success);
+            border-radius: 50%;
+        }
+
+        /* Dashboard Grid Layout */
+        .dashboard-grid {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Section Panel Columns */
+        .dashboard-column {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Card panels */
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            position: relative;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Camera Viewport */
+        .viewport-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #111;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        canvas#overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Status Banners */
+        .status-banner {
+            width: 100%;
+            padding: 16px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .status-standby {
+            background-color: var(--bg-nested);
+            border-color: var(--border-color);
+            color: var(--text-muted);
+        }
+
+        .status-granted {
+            background-color: var(--success-bg);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .status-warning {
+            background-color: var(--warning-bg);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .status-danger {
+            background-color: var(--danger-bg);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        /* Action selection controls */
+        .action-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            background-color: var(--bg-nested);
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .action-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            background: transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .action-option.active {
+            background-color: var(--primary);
+            color: var(--text-on-primary);
+        }
+
+        /* Buttons */
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 16px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.15s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--text-on-primary);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* Employee Verified Card overlay */
+        .verification-success-card {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            right: 24px;
+            bottom: 24px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            z-index: 50;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 2px solid var(--success);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .employee-avatar {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 4px solid var(--success);
+            object-fit: cover;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .employee-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .transaction-badge {
+            background-color: var(--success-bg);
+            border: 1px solid var(--success);
+            color: var(--success);
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 6px 16px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Header Bar -->
+    <div class="header-bar">
+        <div class="header-title-group">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <h1 class="header-title">Access Attendance Portal</h1>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <button class="btn-primary" style="background-color: var(--bg-nested); border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.8rem; padding: 6px 12px; display: flex; align-items: center; gap: 6px;" onclick="location.href='/'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                Exit to Home
+            </button>
+            <div class="system-badge">
+                <div class="dot"></div>
+                <span>System Active</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Dashboard Grid -->
+    <div class="dashboard-grid">
+        
+        <!-- Video Stream Column -->
+        <div class="dashboard-column">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        Verification Webcam Stream
+                    </div>
+                </div>
+                
+                <div class="viewport-container">
+                    <!-- Success profile overlay card -->
+                    <div class="verification-success-card" id="successCard">
+                        <img src="" id="avatarDisplay" class="employee-avatar" alt="Avatar">
+                        <div class="employee-name" id="nameDisplay">Jane Doe</div>
+                        <div class="transaction-badge" id="badgeDisplay">CHECK-IN SUCCESSFUL</div>
+                    </div>
+                    
+                    <video id="webcam" autoplay playsinline></video>
+                    <canvas id="overlay"></canvas>
+                </div>
+                
+                <button class="btn-primary" id="toggleCameraBtn" style="height: 52px; font-size: 1rem;" onclick="toggleCamera()">Start Verification Stream</button>
+                
+                <div class="status-banner status-standby" id="statusBanner">
+                    SYSTEM STANDBY
+                </div>
+            </div>
+        </div>
+        
+        <!-- Control panel Column -->
+        <div class="dashboard-column">
+            
+            <div class="card" style="height: 100%; display: flex; flex-direction: column; justify-content: center;">
+                <div class="card-header" style="margin-bottom: 8px;">
+                    <div class="card-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Transaction Mode
+                    </div>
+                </div>
+                
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+                    Select check-in or check-out, click <strong>Start Verification Stream</strong>, and face the camera to record your attendance.
+                </div>
+                
+                <div class="action-selector">
+                    <div class="action-option active" id="optionLogin" onclick="setAction('LOGIN')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                        Check-In (Login)
+                    </div>
+                    <div class="action-option" id="optionLogout" onclick="setAction('LOGOUT')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        Check-Out (Logout)
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+    </div>
+
+    <!-- Scripting Processing -->
+    <script>
+        const video = document.getElementById('webcam');
+        const canvas = document.createElement('canvas');
+        const overlay = document.getElementById('overlay');
+        const ctx = overlay.getContext('2d');
+        const statusBanner = document.getElementById('statusBanner');
+        const successCard = document.getElementById('successCard');
+        
+        let stream = null;
+        let cameraActive = false;
+        let verifyInterval = null;
+        let selectedAction = "LOGIN";
+
+        function setAction(action) {
+            selectedAction = action;
+            document.getElementById('optionLogin').className = `action-option ${action === 'LOGIN' ? 'active' : ''}`;
+            document.getElementById('optionLogout').className = `action-option ${action === 'LOGOUT' ? 'active' : ''}`;
+            stopCamera();
+        }
+
+        async function toggleCamera() {
+            const btn = document.getElementById('toggleCameraBtn');
+            if (!cameraActive) {
+                successCard.style.display = "none";
+                try {
+                    statusBanner.className = "status-banner status-warning";
+                    statusBanner.textContent = `Initializing verification for check-${selectedAction === 'LOGIN' ? 'in' : 'out'}...`;
+                    
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: 640, height: 480, facingMode: 'user' }
+                    });
+                    video.srcObject = stream;
+                    cameraActive = true;
+                    
+                    video.onloadedmetadata = () => {
+                        overlay.width = video.videoWidth;
+                        overlay.height = video.videoHeight;
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        
+                        btn.textContent = `Stop Camera`;
+                        btn.style.backgroundColor = "var(--danger-bg)";
+                        btn.style.border = "1px solid var(--danger)";
+                        btn.style.color = "var(--danger)";
+                        
+                        statusBanner.className = "status-banner status-standby";
+                        statusBanner.textContent = "Aligned and ready. Present your face.";
+                        
+                        verifyInterval = setInterval(captureAndVerify, 200); // 5 FPS
+                    };
+                } catch (err) {
+                    console.error("Camera acquisition failed:", err);
+                    statusBanner.className = "status-banner status-danger";
+                    statusBanner.textContent = "Webcam access blocked or hardware busy.";
+                }
+            } else {
+                stopCamera();
+            }
+        }
+
+        function stopCamera() {
+            if (verifyInterval) {
+                clearInterval(verifyInterval);
+                verifyInterval = null;
+            }
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            video.srcObject = null;
+            cameraActive = false;
+            
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+            
+            const btn = document.getElementById('toggleCameraBtn');
+            btn.textContent = "Start Verification Stream";
+            btn.style.backgroundColor = "var(--primary)";
+            btn.style.border = "none";
+            btn.style.color = "var(--text-on-primary)";
+            
+            statusBanner.className = "status-banner status-standby";
+            statusBanner.textContent = "System Standby";
+        }
+
+        function captureFrame() {
+            const context = canvas.getContext('2d');
+            context.save();
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            context.restore();
+            // OPTIMIZATION: Compress JPEG quality to 0.65 to cut payload transfer size in half
+            return canvas.toDataURL('image/jpeg', 0.65);
+        }
+
+        async function captureAndVerify() {
+            const frameData = captureFrame();
+            
+            try {
+                const response = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        image: frameData,
+                        action: selectedAction 
+                    })
+                });
+                
+                const res = await response.json();
+                
+                ctx.clearRect(0, 0, overlay.width, overlay.height);
+                
+                if (res.status === "error") {
+                    statusBanner.className = "status-banner status-danger";
+                    statusBanner.textContent = "API error";
+                    return;
+                }
+                
+                if (res.status === "no_face") {
+                    statusBanner.className = "status-banner status-standby";
+                    statusBanner.textContent = res.message;
+                    drawGuideBox(overlay.width/2 - 130, overlay.height/2 - 130, 260, 260, '#6c757d');
+                } 
+                else if (res.status === "misaligned") {
+                    statusBanner.className = "status-banner status-warning";
+                    statusBanner.textContent = res.message;
+                    drawGuideBox(res.g_x1, res.g_y1, 260, 260, '#e67e22');
+                }
+                else if (res.status === "blurry" || res.status === "too_small" || res.status === "spoof" || res.status === "underexposed" || res.status === "overexposed") {
+                    statusBanner.className = "status-banner status-danger";
+                    statusBanner.textContent = res.message;
+                }
+                else if (res.status === "success") {
+                    if (res.match) {
+                        statusBanner.className = "status-banner status-granted";
+                        statusBanner.textContent = `SUCCESS: Verified ${res.user}`;
+                        
+                        document.getElementById('nameDisplay').textContent = res.user;
+                        document.getElementById('badgeDisplay').textContent = `CHECK-${selectedAction === 'LOGIN' ? 'IN' : 'OUT'} SUCCESSFUL`;
+                        
+                        const avatarImg = document.getElementById('avatarDisplay');
+                        if (res.avatar_url) {
+                            avatarImg.src = res.avatar_url + "?t=" + new Date().getTime();
+                        } else {
+                            avatarImg.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236c757d'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+                        }
+                        
+                        successCard.style.display = "flex";
+                        
+                        setTimeout(() => {
+                            stopCamera();
+                            successCard.style.display = "none";
+                        }, 2500);
+                    } else {
+                        statusBanner.className = "status-banner status-danger";
+                        statusBanner.textContent = `REJECTED: STRANGER DETECTED`;
+                    }
+                }
+            } catch (err) {
+                console.error("Verification connection error:", err);
+            }
+        }
+
+        function drawGuideBox(x, y, w, h, color) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 6]);
+            ctx.strokeRect(x, y, w, h);
+            ctx.setLineDash([]);
+        }
+    </script>
+</body>
+</html>

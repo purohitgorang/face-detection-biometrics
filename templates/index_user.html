@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric Attendance Kiosk</title>
+    <!-- Google Fonts: Inter for UI -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #f8f9fa;        /* Light Grey Background */
+            --bg-card: #ffffff;        /* Pure White Card Panels */
+            --bg-nested: #f1f3f5;      /* Nested Light Panels */
+            --border-color: #dee2e6;   /* Gray border */
+            --primary: #714B67;        /* Odoo Purple Brand Primary */
+            --primary-hover: #5a3c52;  /* Darker Odoo Purple */
+            --success: #00A09D;        /* Odoo Teal/Green Brand */
+            --success-bg: rgba(0, 160, 157, 0.08);
+            --danger: #d9534f;
+            --danger-bg: rgba(217, 83, 79, 0.08);
+            --text-main: #212529;      /* Dark Charcoal text */
+            --text-muted: #6c757d;    /* Slate Gray text */
+            --text-on-primary: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Top Header Bar */
+        .header-bar {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 24px;
+            background: transparent;
+        }
+
+        .header-title-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            text-transform: uppercase;
+            color: var(--primary);
+        }
+
+        .system-badge {
+            background-color: var(--success-bg);
+            border: 1px solid var(--success);
+            color: var(--success);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .system-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--success);
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.6; }
+            50% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.6; }
+        }
+
+        /* Container card */
+        .portal-container {
+            width: 100%;
+            max-width: 850px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+        }
+
+        /* Dropdown selection styled */
+        .select-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .select-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .select-dropdown {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--bg-nested);
+            outline: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: border-color 0.15s ease;
+        }
+
+        .select-dropdown:focus {
+            border-color: var(--primary);
+        }
+
+        /* Action Option Cards (In/Out) */
+        .action-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .action-option {
+            border: 2px solid var(--border-color);
+            background-color: var(--bg-card);
+            border-radius: 6px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .action-option:hover {
+            border-color: var(--primary);
+            background-color: var(--bg-nested);
+        }
+
+        .action-option.active {
+            border-color: var(--primary);
+            background-color: rgba(113, 75, 103, 0.08);
+        }
+
+        .action-icon {
+            color: var(--text-muted);
+            transition: color 0.15s ease;
+        }
+
+        .action-option.active .action-icon {
+            color: var(--primary);
+        }
+
+        .action-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* Live Camera Area */
+        .viewport-container {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background-color: #000000;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--border-color);
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        #webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Mirror camera stream */
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .btn-primary, .btn-secondary {
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 18px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-align: center;
+            transition: background-color 0.15s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--text-on-primary);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-nested);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background-color: #e9ecef;
+        }
+
+        .status-banner {
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 0.02em;
+            transition: all 0.2s ease;
+        }
+
+        .status-standby {
+            background-color: var(--bg-nested);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+        }
+
+        .status-warning {
+            background-color: #fef9c3;
+            color: #854d0e;
+            border: 1px solid #fef08a;
+        }
+
+        .status-granted {
+            background-color: var(--success-bg);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .status-danger {
+            background-color: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        /* Success Panel Overlay */
+        .success-panel {
+            background-color: var(--success-bg);
+            border: 2px solid var(--success);
+            border-radius: 8px;
+            padding: 24px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 16px;
+            animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .success-panel.mismatch {
+            background-color: var(--danger-bg);
+            border: 2px solid var(--danger);
+        }
+
+        @keyframes slideIn {
+            0% { transform: translateY(10px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        .avatar-frame {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            border: 3px solid var(--success);
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 160, 157, 0.25);
+            background-color: var(--bg-nested);
+        }
+
+        .success-panel.mismatch .avatar-frame {
+            border-color: var(--danger);
+            box-shadow: 0 4px 12px rgba(217, 83, 79, 0.25);
+        }
+
+        .avatar-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .success-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .success-panel.mismatch .success-name {
+            color: var(--danger);
+        }
+
+        .success-badge {
+            background-color: var(--success);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 12px;
+            letter-spacing: 0.05em;
+        }
+
+        .success-panel.mismatch .success-badge {
+            background-color: var(--danger);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Header Bar -->
+    <div class="header-bar">
+        <div class="header-title-group">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <h1 class="header-title">Biometric Attendance Kiosk</h1>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <button class="btn-secondary" style="font-size: 0.8rem; padding: 6px 12px; display: flex; align-items: center; gap: 6px;" onclick="location.href='/'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                Exit Portal
+            </button>
+            <div class="system-badge">
+                <div class="dot"></div>
+                <span>Kiosk Live</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Portal Container -->
+    <div class="portal-container">
+        
+        <!-- STEP 1: SESSION SELECTION CARD -->
+        <div class="card" id="selectionCard">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                    Select Account to Verify
+                </div>
+            </div>
+            
+            <div class="select-group" id="selectorContainer">
+                <label class="select-label">Current Active Session</label>
+                <select id="userSelector" class="select-dropdown" onchange="onUserSelected()">
+                    <!-- Loaded dynamically -->
+                </select>
+            </div>
+
+            <div class="select-group" id="lockedSessionContainer" style="display: none;">
+                <label class="select-label">Current Active Session</label>
+                <div class="select-dropdown" style="display: flex; align-items: center; justify-content: space-between; background: #f1f3f5; border: 1px solid #ced4da; font-weight: 600; color: #495057; height: 48px; border-radius: 8px; padding: 0 16px;">
+                    <span id="lockedSessionText">emp001</span>
+                    <span style="font-size: 0.75rem; color: #28a745; background: #d4edda; padding: 4px 10px; border-radius: 12px; font-weight: 600; letter-spacing: 0.5px;">🔒 LOCKED FROM ODOO</span>
+                </div>
+            </div>
+            
+            <div style="height: 12px;"></div>
+            
+            <button class="btn-primary" style="height: 52px; font-size: 1rem;" onclick="startFaceVerification()">Proceed to Face Verify</button>
+        </div>
+        
+        <!-- STEP 2: VIDEO CAMERA VIEWPORT CARD -->
+        <div class="card" id="cameraCard" style="display: none;">
+            <div class="card-header">
+                <div class="card-title" id="cameraCardTitle">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    Verifying EMP001
+                </div>
+            </div>
+            
+            <div class="viewport-container">
+                <video id="webcam" autoplay playsinline></video>
+                <canvas id="overlay"></canvas>
+            </div>
+            
+            <button class="btn-secondary" onclick="cancelFaceVerification()">Go Back</button>
+            
+            <div class="status-banner status-warning" id="statusBanner">
+                INITIALIZING CAMERA...
+            </div>
+        </div>
+        
+        <!-- Success/Failure Result Panel -->
+        <div class="success-panel" id="successCard">
+            <div class="avatar-frame">
+                <img id="avatarDisplay" src="">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div class="success-name" id="nameDisplay">John Doe</div>
+                <div style="display: flex; justify-content: center;">
+                    <span class="success-badge" id="badgeDisplay">CHECK-IN SUCCESS</span>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Scripting Core -->
+    <script>
+        const video = document.getElementById('webcam');
+        const canvas = document.createElement('canvas');
+        const overlay = document.getElementById('overlay');
+        const ctx = overlay.getContext('2d');
+        const statusBanner = document.getElementById('statusBanner');
+        const successCard = document.getElementById('successCard');
+        
+        const selectionCard = document.getElementById('selectionCard');
+        const cameraCard = document.getElementById('cameraCard');
+        
+        let stream = null;
+        let cameraActive = false;
+        let livenessInterval = null;
+        let selectedAction = "VERIFY";
+
+        function onUserSelected() {
+            successCard.style.display = "none";
+        }
+
+        let urlUserId = null;
+
+        function checkLockedSession() {
+            const urlParams = new URLSearchParams(window.location.search);
+            urlUserId = urlParams.get('user_id');
+            if (urlUserId) {
+                document.getElementById('selectorContainer').style.display = "none";
+                document.getElementById('lockedSessionContainer').style.display = "block";
+                document.getElementById('lockedSessionText').textContent = urlUserId;
+                
+                const selector = document.getElementById('userSelector');
+                selector.innerHTML = "";
+                const opt = document.createElement('option');
+                opt.value = urlUserId;
+                opt.textContent = urlUserId;
+                opt.selected = true;
+                selector.appendChild(opt);
+            }
+        }
+
+        async function loadUsersDropdown() {
+            if (urlUserId) return;
+            try {
+                const response = await fetch('/api/users?t=' + new Date().getTime());
+                const data = await response.json();
+                const selector = document.getElementById('userSelector');
+                // Preserve current selection so 3s poll doesn't reset the dropdown
+                const currentVal = selector.value;
+                selector.innerHTML = "";
+                
+                if (data.users.length === 0) {
+                    selector.innerHTML = "<option value=''>-- No Registered Profiles --</option>";
+                    return;
+                }
+                
+                data.users.forEach(user => {
+                    const opt = document.createElement('option');
+                    opt.value = user.id;
+                    opt.textContent = `${user.id} - ${user.name}`;
+                    if (user.id === currentVal) opt.selected = true;
+                    selector.appendChild(opt);
+                });
+            } catch (err) {
+                console.error("Failed to load user list:", err);
+            }
+        }
+
+        async function startFaceVerification() {
+            const userSelector = document.getElementById('userSelector');
+            const selectedUserId = userSelector.value;
+            if (!selectedUserId) {
+                alert("Please register users in Admin Console first.");
+                return;
+            }
+            
+            // Switch views
+            selectionCard.style.display = "none";
+            cameraCard.style.display = "flex";
+            document.getElementById('cameraCardTitle').innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                Verifying ${selectedUserId}
+            `;
+            
+            // Start Webcam stream
+            try {
+                statusBanner.className = "status-banner status-warning";
+                statusBanner.textContent = "Loading camera feed...";
+                
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        width: { ideal: 640 }, 
+                        height: { ideal: 480 }, 
+                        facingMode: 'user' 
+                    },
+                    audio: false
+                });
+                video.srcObject = stream;
+                cameraActive = true;
+                
+                video.onloadedmetadata = () => {
+                    overlay.width = video.videoWidth;
+                    overlay.height = video.videoHeight;
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    
+                    statusBanner.className = "status-banner status-warning";
+                    statusBanner.textContent = "Blink your eyes to verify your identity.";
+                    
+                    startLivenessAndVerify();
+                };
+            } catch (err) {
+                console.error("Webcam acquisition failed:", err);
+                statusBanner.className = "status-banner status-danger";
+                statusBanner.textContent = "Webcam access blocked or hardware busy.";
+            }
+        }
+
+        let livenessActive = false;
+
+        function startLivenessAndVerify() {
+            let eyesWereOpen = false;
+            let eyesClosedSeen = false;
+            livenessActive = true;
+            
+            async function livenessLoop() {
+                if (!cameraActive || !livenessActive) return;
+                
+                const frameData = captureFrame();
+                ctx.clearRect(0, 0, overlay.width, overlay.height);
+                drawGuideBox(overlay.width/2 - 130, overlay.height/2 - 130, 260, 260, '#714B67');
+                
+                try {
+                    const response = await fetch('/api/detect_blink', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: frameData })
+                    });
+                    const res = await response.json();
+                    
+                    if (!cameraActive || !livenessActive) return;
+                    
+                    // Draw glowing eye landmarks overlay for sci-fi biometric feedback
+                    if (res.landmarks) {
+                        const [lex, ley, rex, rey] = res.landmarks;
+                        ctx.fillStyle = '#00A09D';
+                        ctx.shadowColor = '#00A09D';
+                        ctx.shadowBlur = 8;
+                        ctx.beginPath();
+                        ctx.arc(lex, ley, 5, 0, 2 * Math.PI);
+                        ctx.arc(rex, rey, 5, 0, 2 * Math.PI);
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    }
+                    
+                    if (res.status === "no_face") {
+                        statusBanner.className = "status-banner status-standby";
+                        statusBanner.textContent = "ALIGN FACE IN THE GUIDE BOX";
+                    } 
+                    else if (res.status === "spoof") {
+                        statusBanner.className = "status-banner status-danger";
+                        statusBanner.textContent = res.message;
+                    }
+                    else if (res.status === "success") {
+                        const open = res.eyes_open;
+                        if (open) {
+                            eyesWereOpen = true;
+                            if (eyesClosedSeen) {
+                                // Blink cycle completed! Stop loop and verify
+                                livenessActive = false;
+                                statusBanner.className = "status-banner status-warning";
+                                statusBanner.textContent = "Blink verified! Verifying face template...";
+                                executeFaceVerify(frameData);
+                                return; // Stop recursion
+                            } else {
+                                statusBanner.className = "status-banner status-warning";
+                                statusBanner.textContent = "👁️ EYES OPEN - Now blink to verify.";
+                            }
+                        } else {
+                            if (eyesWereOpen) {
+                                eyesClosedSeen = true;
+                                statusBanner.className = "status-banner status-granted";
+                                statusBanner.textContent = "✓ Blink detected (Eyes Closed)... Keep looking!";
+                            } else {
+                                statusBanner.className = "status-banner status-warning";
+                                statusBanner.textContent = "❌ EYES NOT DETECTED - Look straight at the camera.";
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("Liveness check error:", err);
+                }
+                
+                // Schedule next frame in 100ms for high-FPS blink sampling
+                setTimeout(livenessLoop, 100);
+            }
+            
+            livenessLoop();
+        }
+
+        async function executeFaceVerify(frameData) {
+            const userSelector = document.getElementById('userSelector');
+            const selectedUserId = userSelector.value;
+            
+            try {
+                const response = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        image: frameData,
+                        user_id: selectedUserId,
+                        action: selectedAction 
+                    })
+                });
+                
+                const res = await response.json();
+                stopCamera();
+                cameraCard.style.display = "none";
+                
+                if (res.status === "error") {
+                    statusBanner.className = "status-banner status-danger";
+                    statusBanner.textContent = res.message;
+                    selectionCard.style.display = "flex";
+                    return;
+                }
+                
+                // cooldown status was removed from backend — no handler needed
+                else if (res.status === "success") {
+                    if (res.match) {
+                        statusBanner.className = "status-banner status-granted";
+                        statusBanner.textContent = `SUCCESS: VERIFIED AS ${res.user}`;
+                        
+                        document.getElementById('nameDisplay').textContent = res.user;
+                        document.getElementById('badgeDisplay').textContent = `✓ VERIFIED SUCCESSFUL`;
+                        
+                        const avatarImg = document.getElementById('avatarDisplay');
+                        avatarImg.src = `/static/avatars/${selectedUserId}.jpg?t=${new Date().getTime()}`;
+                        
+                        successCard.className = "success-panel";
+                        successCard.style.display = "flex";
+                        
+                        setTimeout(() => {
+                            successCard.style.display = "none";
+                            selectionCard.style.display = "flex";
+                        }, 3000);
+                    } else {
+                        statusBanner.className = "status-banner status-danger";
+                        statusBanner.textContent = `ACCESS DENIED: Face does not match ${res.user}`;
+                        
+                        document.getElementById('nameDisplay').textContent = "ACCESS DENIED";
+                        document.getElementById('badgeDisplay').textContent = `IDENTITY MISMATCH`;
+                        
+                        const avatarImg = document.getElementById('avatarDisplay');
+                        avatarImg.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d9534f'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z'/></svg>";
+                        
+                        successCard.className = "success-panel mismatch";
+                        successCard.style.display = "flex";
+                        
+                        setTimeout(() => {
+                            successCard.style.display = "none";
+                            selectionCard.style.display = "flex";
+                        }, 3000);
+                    }
+                }
+            } catch (err) {
+                console.error("Verification connection error:", err);
+                selectionCard.style.display = "flex";
+            }
+        }
+
+        function cancelFaceVerification() {
+            stopCamera();
+            cameraCard.style.display = "none";
+            selectionCard.style.display = "flex";
+            successCard.style.display = "none";
+        }
+
+        function stopCamera() {
+            livenessActive = false;
+            if (livenessInterval) {
+                clearInterval(livenessInterval);
+                livenessInterval = null;
+            }
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            video.srcObject = null;
+            cameraActive = false;
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+        }
+
+        function captureFrame() {
+            const context = canvas.getContext('2d');
+            context.save();
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            context.restore();
+            return canvas.toDataURL('image/jpeg', 0.65);
+        }
+
+        function drawGuideBox(x, y, w, h, color) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 6]);
+            ctx.strokeRect(x, y, w, h);
+            ctx.setLineDash([]);
+        }
+
+        window.onload = async () => {
+            checkLockedSession();
+            if (!urlUserId) {
+                await loadUsersDropdown();
+                // Poll registered users database every 3 seconds to keep open tabs in sync
+                setInterval(async () => {
+                    if (!cameraActive) {
+                        await loadUsersDropdown();
+                    }
+                }, 3000);
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Management Console</title>
+    <!-- Google Fonts: Inter for UI -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #f8f9fa;        /* Light Grey Background */
+            --bg-card: #ffffff;        /* Pure White Card Panels */
+            --bg-nested: #f1f3f5;      /* Nested Light Panels */
+            --border-color: #dee2e6;   /* Gray border */
+            --primary: #714B67;        /* Odoo Purple Brand Primary */
+            --primary-hover: #5a3c52;  /* Darker Odoo Purple */
+            --success: #00A09D;        /* Odoo Teal/Green Brand */
+            --success-bg: rgba(0, 160, 157, 0.08);
+            --danger: #d9534f;
+            --danger-bg: rgba(217, 83, 79, 0.08);
+            --text-main: #212529;      /* Dark Charcoal text */
+            --text-muted: #6c757d;    /* Slate Gray text */
+            --text-on-primary: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Top Header Bar */
+        .header-bar {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 24px;
+            background: transparent;
+        }
+
+        .header-title-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            text-transform: uppercase;
+            color: var(--primary);
+        }
+
+        .system-badge {
+            background-color: var(--success-bg);
+            border: 1px solid var(--success);
+            color: var(--success);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .system-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--success);
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.6; }
+            50% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.6; }
+        }
+
+        /* Main Dashboard Grid */
+        .dashboard-grid {
+            width: 100%;
+            max-width: 1400px;
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .dashboard-column {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Card Panels */
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+        }
+
+        /* Camera Viewport */
+        .viewport-container {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background-color: #000000;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--border-color);
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        #webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Mirror camera stream */
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .status-banner {
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 0.02em;
+            transition: all 0.2s ease;
+        }
+
+        .status-standby {
+            background-color: var(--bg-nested);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+        }
+
+        .status-warning {
+            background-color: #fef9c3;
+            color: #854d0e;
+            border: 1px solid #fef08a;
+        }
+
+        .status-granted {
+            background-color: var(--success-bg);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .status-danger {
+            background-color: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        /* Input Controls */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--bg-nested);
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+
+        .input-group input:focus {
+            border-color: var(--primary);
+            background-color: var(--bg-card);
+        }
+
+        /* Lists */
+        .user-list {
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px;
+            background-color: var(--bg-nested);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .user-badge {
+            background-color: var(--bg-nested);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            color: var(--text-main);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .user-avatar-badge {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid var(--primary);
+        }
+
+        /* Wizard Overlay Banner */
+        .wizard-banner {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            background: rgba(113, 75, 103, 0.92);
+            color: var(--text-on-primary);
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+            display: none;
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .audit-logs-box {
+            height: 160px;
+            overflow-y: auto;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-primary, .btn-secondary, .btn-danger {
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 16px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.15s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--text-on-primary);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-nested);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background-color: #e9ecef;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-bg);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background-color: rgba(217, 83, 79, 0.15);
+        }
+
+        /* Telemetry Table */
+        .telemetry-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .telemetry-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .telemetry-row:last-child {
+            border-bottom: none;
+        }
+
+        .telemetry-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .telemetry-value {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Header Bar -->
+    <div class="header-bar">
+        <div class="header-title-group">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <h1 class="header-title">Admin Management Console</h1>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <button class="btn-primary" style="background-color: var(--bg-nested); border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.8rem; padding: 6px 12px; display: flex; align-items: center; gap: 6px;" onclick="location.href='/'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Exit to Home
+            </button>
+            <div class="system-badge">
+                <div class="dot"></div>
+                <span>Admin Mode</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Dashboard Grid -->
+    <div class="dashboard-grid">
+        
+        <!-- Video Stream Column -->
+        <div class="dashboard-column">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        Enrollment Alignment Feed
+                    </div>
+                </div>
+                
+                <div class="viewport-container">
+                    <div class="wizard-banner" id="wizardOverlay">ALIGN AND CAPTURE</div>
+                    <video id="webcam" autoplay playsinline></video>
+                    <canvas id="overlay"></canvas>
+                    
+                    <!-- iPhone Face ID HUD HUD Overlay -->
+                    <div id="faceIdWizardContainer" style="display: none; position: absolute; bottom: 12px; left: 12px; right: 12px; background: rgba(0,0,0,0.88); border: 1px solid rgba(255,255,255,0.18); color: white; padding: 12px; border-radius: 8px; font-size: 0.72rem; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.5); text-align: left;">
+                        <div style="font-weight: 700; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.12); padding-bottom: 6px; color: #00A09D;">
+                            <span>Face ID Registration HUD</span>
+                            <span id="faceIdStepNum" style="color: #00A09D; font-weight: 800;">Pose 1/5</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;" id="faceIdPoseList">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn-primary" id="toggleCameraBtn" style="height: 48px; font-weight: 600;" onclick="toggleCamera()">Start Enrollment Stream</button>
+                
+                <div class="status-banner status-standby" id="statusBanner">
+                    SYSTEM STANDBY
+                </div>
+            </div>
+        </div>
+        
+        <!-- Control panels Column -->
+        <div class="dashboard-column">
+            
+            <!-- ADMIN PORTAL: ENROLLMENT -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                        Identity Registration Wizard
+                    </div>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="userIdInput" placeholder="Enter Unique ID (e.g. EMP001)">
+                    <input type="text" id="usernameInput" placeholder="Enter Registration Name">
+                    <button class="btn-primary" id="enrollBtn" onclick="startEnrollmentWizard()">Enroll User</button>
+                </div>
+                <div class="user-list" id="enrolledUsersBox">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+            
+            <!-- ADMIN PORTAL: DIAGNOSTICS -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        Last Matching Telemetry
+                    </div>
+                </div>
+                <table class="telemetry-table">
+                    <tr class="telemetry-row">
+                        <td class="telemetry-label">Exposure / Brightness</td>
+                        <td class="telemetry-value" id="telemetryBrightness">--</td>
+                    </tr>
+                    <tr class="telemetry-row">
+                        <td class="telemetry-label">Texture Contrast</td>
+                        <td class="telemetry-value" id="telemetryTexture">--</td>
+                    </tr>
+                    <tr class="telemetry-row">
+                        <td class="telemetry-label">Camera Blur (Var)</td>
+                        <td class="telemetry-value" id="telemetryBlur">--</td>
+                    </tr>
+                    <tr class="telemetry-row">
+                        <td class="telemetry-label">Inference Latency</td>
+                        <td class="telemetry-value" id="telemetryLatency">--</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- ADMIN PORTAL: AUDIT LOGS -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        Security Audit Log
+                    </div>
+                </div>
+                <div class="audit-logs-box" id="auditLogBox">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+            
+            <!-- ADMIN PORTAL: CONTROLS -->
+            <div class="card" style="margin-top: auto;">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        Database Management Controls
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <!-- Strictness Slider -->
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); display: flex; justify-content: space-between;">
+                            <span>Match Strictness (Threshold)</span>
+                            <span id="thresholdVal" style="color: var(--primary);">0.395</span>
+                        </label>
+                        <input type="range" id="thresholdSlider" min="0.35" max="0.48" step="0.005" value="0.395" style="accent-color: var(--primary);" oninput="updateThreshold(this.value)">
+                    </div>
+                    <!-- Date Filters for CSV -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.75rem; color: var(--text-muted);">Start Date</label>
+                            <input type="date" id="startDateFilter" style="padding: 6px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.75rem;">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.75rem; color: var(--text-muted);">End Date</label>
+                            <input type="date" id="endDateFilter" style="padding: 6px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.75rem;">
+                        </div>
+                    </div>
+                    <div style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+                        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">Delete Individual Profile</label>
+                        <div style="display: flex; gap: 8px;">
+                            <select id="deleteUserSelector" style="flex: 1; padding: 8px; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text); font-size: 0.82rem; outline: none;">
+                                <option value="">-- Select Profile --</option>
+                            </select>
+                            <button class="btn-danger" style="margin: 0; padding: 0 12px; font-size: 0.82rem;" onclick="deleteSelectedUser()">Delete</button>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
+                        <button class="btn-primary" style="grid-column: span 2; background-color: var(--primary);" onclick="exportAttendance()">Export Attendance (CSV)</button>
+                        <button class="btn-danger" style="grid-column: span 2;" onclick="clearDatabase()">Clear database</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Scripting Processing -->
+    <script>
+        const video = document.getElementById('webcam');
+        const canvas = document.createElement('canvas');
+        const overlay = document.getElementById('overlay');
+        const ctx = overlay.getContext('2d');
+        
+        const statusBanner = document.getElementById('statusBanner');
+        const wizardOverlay = document.getElementById('wizardOverlay');
+        
+        let enrollmentMode = false;
+        let enrollmentName = "";
+        let enrollmentId = "";
+        let enrollmentStep = 0;
+        let blinkCheckInterval = null;
+        let countdownTimer = null;
+        let step0Active = false;
+        
+        const poseNames = ["Center (Blink)", "Turn Left", "Turn Right", "Tilt Up", "Tilt Down"];
+        const poseInstructions = [
+            "Blink your eyes to verify.",
+            "Turn head slightly Left.",
+            "Turn head slightly Right.",
+            "Tilt head slightly Up.",
+            "Tilt head slightly Down."
+        ];
+        
+        let stream = null;
+        let cameraActive = false;
+
+        // Custom Odoo-style Toast Notifications
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.style.position = 'fixed';
+            toast.style.top = '24px';
+            toast.style.right = '24px';
+            toast.style.padding = '14px 20px';
+            toast.style.borderRadius = '6px';
+            toast.style.backgroundColor = type === 'success' ? '#00A09D' : '#d9534f';
+            toast.style.color = '#ffffff';
+            toast.style.fontSize = '0.9rem';
+            toast.style.fontWeight = '600';
+            toast.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+            toast.style.zIndex = '1000';
+            toast.style.opacity = '0';
+            toast.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+            toast.style.transform = 'translateY(-10px)';
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateY(0)';
+            }, 50);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        async function updateThreshold(val) {
+            document.getElementById('thresholdVal').textContent = val;
+            try {
+                await fetch('/api/config/threshold', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ threshold: parseFloat(val) })
+                });
+            } catch (err) {
+                console.error("Failed to update threshold:", err);
+            }
+        }
+        
+        async function loadThreshold() {
+            try {
+                const response = await fetch('/api/config/threshold');
+                const res = await response.json();
+                document.getElementById('thresholdSlider').value = res.threshold;
+                document.getElementById('thresholdVal').textContent = res.threshold;
+            } catch (err) {
+                console.error("Failed to load threshold:", err);
+            }
+        }
+
+        async function toggleCamera() {
+            const btn = document.getElementById('toggleCameraBtn');
+            if (!cameraActive) {
+                try {
+                    statusBanner.className = "status-banner status-warning";
+                    statusBanner.textContent = "Requesting webcam initialization...";
+                    
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: 640 },
+                            height: { ideal: 480 },
+                            facingMode: "user"
+                        },
+                        audio: false
+                    });
+                    
+                    video.srcObject = stream;
+                    cameraActive = true;
+                    
+                    video.onloadedmetadata = () => {
+                        overlay.width = video.videoWidth;
+                        overlay.height = video.videoHeight;
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        
+                        btn.textContent = "Stop Camera Feed";
+                        btn.style.backgroundColor = "var(--danger-bg)";
+                        btn.style.border = "1px solid var(--danger)";
+                        btn.style.color = "var(--danger)";
+                        
+                        statusBanner.className = "status-banner status-standby";
+                        statusBanner.textContent = "Aligned and ready for enrollment capture.";
+                    };
+                } catch (err) {
+                    console.error("Camera acquisition failed:", err);
+                    statusBanner.className = "status-banner status-danger";
+                    statusBanner.textContent = "Webcam access blocked or hardware busy.";
+                    showToast("Camera access failed.", "error");
+                }
+            } else {
+                stopCamera();
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            video.srcObject = null;
+            cameraActive = false;
+            
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+            
+            const btn = document.getElementById('toggleCameraBtn');
+            btn.textContent = "Start Enrollment Stream";
+            btn.style.backgroundColor = "var(--primary)";
+            btn.style.border = "none";
+            btn.style.color = "var(--text-on-primary)";
+            
+            statusBanner.className = "status-banner status-standby";
+            statusBanner.textContent = "System Standby";
+            
+            wizardOverlay.style.display = "none";
+            document.getElementById('faceIdWizardContainer').style.display = 'none';
+            step0Active = false;
+            if (blinkCheckInterval) clearInterval(blinkCheckInterval);
+            if (countdownTimer) clearInterval(countdownTimer);
+        }
+
+        function captureFrame() {
+            const context = canvas.getContext('2d');
+            context.save();
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            context.restore();
+            return canvas.toDataURL('image/jpeg', 0.65);
+        }
+
+        function drawGuideBox(x, y, w, h, color) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 6]);
+            ctx.strokeRect(x, y, w, h);
+            ctx.setLineDash([]);
+        }
+
+        function updateFaceIdHud() {
+            const list = document.getElementById('faceIdPoseList');
+            list.innerHTML = "";
+            
+            for (let i = 0; i < 5; i++) {
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.gap = '8px';
+                row.style.fontSize = '0.72rem';
+                
+                const dot = document.createElement('span');
+                dot.style.display = 'inline-block';
+                dot.style.width = '14px';
+                dot.style.height = '14px';
+                dot.style.borderRadius = '50%';
+                dot.style.textAlign = 'center';
+                dot.style.lineHeight = '14px';
+                dot.style.fontSize = '9px';
+                dot.style.fontWeight = 'bold';
+                
+                if (i < enrollmentStep) {
+                    dot.style.backgroundColor = '#00A09D';
+                    dot.style.color = 'white';
+                    dot.textContent = '✓';
+                    row.style.color = '#00A09D';
+                    row.style.fontWeight = '600';
+                } else if (i === enrollmentStep) {
+                    dot.style.backgroundColor = '#714B67';
+                    dot.style.color = 'white';
+                    dot.textContent = (i + 1).toString();
+                    row.style.color = '#ffffff';
+                    row.style.fontWeight = '700';
+                    
+                    dot.animate([
+                        { transform: 'scale(1)' },
+                        { transform: 'scale(1.2)' },
+                        { transform: 'scale(1)' }
+                    ], {
+                        duration: 1000,
+                        iterations: Infinity
+                    });
+                } else {
+                    dot.style.backgroundColor = '#495057';
+                    dot.style.color = '#adb5bd';
+                    dot.textContent = '◯';
+                    row.style.color = '#868e96';
+                }
+                
+                const label = document.createElement('span');
+                label.textContent = `${poseNames[i]} - ${poseInstructions[i]}`;
+                
+                row.appendChild(dot);
+                row.appendChild(label);
+                list.appendChild(row);
+            }
+            document.getElementById('faceIdStepNum').textContent = `Pose ${enrollmentStep + 1}/5`;
+        }
+
+        async function startEnrollmentWizard() {
+            const idInput = document.getElementById('userIdInput');
+            const nameInput = document.getElementById('usernameInput');
+            
+            enrollmentId = idInput.value.trim();
+            enrollmentName = nameInput.value.trim();
+            
+            if (!enrollmentId || !enrollmentName) {
+                showToast("Provide both Unique ID and Name first.", "error");
+                return;
+            }
+            
+            // Validate duplicate block
+            try {
+                const response = await fetch('/api/users?t=' + new Date().getTime());
+                const data = await response.json();
+                if (data.users.map(u => u.id.toLowerCase()).includes(enrollmentId.toLowerCase())) {
+                    showToast("Unique ID already registered. Use a unique ID.", "error");
+                    return;
+                }
+            } catch (err) {
+                console.error("Duplicate validate failed:", err);
+            }
+            
+            if (!cameraActive) {
+                await toggleCamera();
+                if (!cameraActive) {
+                    showToast("Turn on the camera to capture poses.", "error");
+                    return;
+                }
+            }
+            
+            enrollmentMode = true;
+            enrollmentStep = 0;
+            wizardOverlay.style.display = "block";
+            document.getElementById('faceIdWizardContainer').style.display = 'block';
+            
+            document.getElementById('enrollBtn').disabled = true;
+            runEnrollmentStep();
+        }
+
+        async function runEnrollmentStep() {
+            if (enrollmentStep >= 5) {
+                wizardOverlay.style.display = "none";
+                document.getElementById('faceIdWizardContainer').style.display = 'none';
+                statusBanner.className = "status-banner status-granted";
+                statusBanner.textContent = `Identity ${enrollmentName} registered successfully.`;
+                showToast(`Identity "${enrollmentName}" registered!`, "success");
+                document.getElementById('enrollBtn').disabled = false;
+                document.getElementById('usernameInput').value = "";
+                document.getElementById('userIdInput').value = "";
+                enrollmentMode = false;
+                loadEnrolledUsers();
+                stopCamera();
+                return;
+            }
+            
+            updateFaceIdHud();
+            
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+            drawGuideBox(overlay.width/2 - 130, overlay.height/2 - 130, 260, 260, '#714B67');
+            
+            if (enrollmentStep === 0) {
+                wizardOverlay.innerHTML = `<span style="color: yellow;">Pose 1: Blink your eyes to verify.</span>`;
+                statusBanner.className = "status-banner status-warning";
+                statusBanner.textContent = "Blink verification active. Please blink now.";
+                
+                let eyesWereOpen = false;
+                let eyesClosedSeen = false;
+                step0Active = true;
+                
+                async function step0LivenessLoop() {
+                    if (!cameraActive || !enrollmentMode || !step0Active || enrollmentStep !== 0) return;
+                    
+                    const frameData = captureFrame();
+                    
+                    // Clear and draw guide box on each frame
+                    ctx.clearRect(0, 0, overlay.width, overlay.height);
+                    drawGuideBox(overlay.width/2 - 130, overlay.height/2 - 130, 260, 260, '#714B67');
+                    
+                    try {
+                        const response = await fetch('/api/detect_blink', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ image: frameData })
+                        });
+                        const res = await response.json();
+                        
+                        if (!cameraActive || !enrollmentMode || !step0Active || enrollmentStep !== 0) return;
+                        
+                        // Draw glowing eye landmarks overlay
+                        if (res.landmarks) {
+                            const [lex, ley, rex, rey] = res.landmarks;
+                            ctx.fillStyle = '#00A09D';
+                            ctx.shadowColor = '#00A09D';
+                            ctx.shadowBlur = 8;
+                            ctx.beginPath();
+                            ctx.arc(lex, ley, 5, 0, 2 * Math.PI);
+                            ctx.arc(rex, rey, 5, 0, 2 * Math.PI);
+                            ctx.fill();
+                            ctx.shadowBlur = 0;
+                        }
+                        
+                        // Update Telemetry diagnostics values in real-time
+                        if (res.brightness !== undefined) {
+                            document.getElementById('telemetryBrightness').textContent = res.brightness.toFixed(1);
+                        }
+                        if (res.variance !== undefined) {
+                            document.getElementById('telemetryTexture').textContent = res.variance.toFixed(2);
+                        }
+                        if (res.blur !== undefined) {
+                            document.getElementById('telemetryBlur').textContent = res.blur.toFixed(1);
+                        }
+                        document.getElementById('telemetryLatency').textContent = "Active (Blink check)";
+                        
+                        if (res.status === "spoof") {
+                            statusBanner.className = "status-banner status-danger";
+                            statusBanner.textContent = res.message;
+                            wizardOverlay.innerHTML = `<span style="color: #d9534f;">❌ Spoof Detected<br>Use real face.</span>`;
+                        }
+                        else if (res.status === "no_face") {
+                            statusBanner.textContent = "ALIGN FACE IN THE GUIDE BOX";
+                            wizardOverlay.innerHTML = `<span style="color: #d9534f;">No Face Detected</span>`;
+                        }
+                        else if (res.status === "success") {
+                            const open = res.eyes_open;
+                            if (open) {
+                                eyesWereOpen = true;
+                                if (eyesClosedSeen) {
+                                    step0Active = false;
+                                    
+                                    statusBanner.textContent = "Blink detected! Capturing template...";
+                                    const enrollResp = await fetch('/api/enroll', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ name: enrollmentName, id: enrollmentId, image: frameData, step: 0 })
+                                    });
+                                    const enrollRes = await enrollResp.json();
+                                    
+                                    if (enrollRes.status === "success") {
+                                        wizardOverlay.innerHTML = `<span style="color: #00A09D;">✓ Success! Blink Verified.</span>`;
+                                        showToast("Center pose and blink verified!", "success");
+                                        enrollmentStep = 1;
+                                        setTimeout(() => {
+                                            runEnrollmentStep();
+                                        }, 1500);
+                                    } else {
+                                        showToast(`Capture failed: ${enrollRes.message}. Retrying...`, "error");
+                                        runEnrollmentStep();
+                                    }
+                                    return; // Stop recursion
+                                } else {
+                                    statusBanner.textContent = "👁️ EYES OPEN - Now blink (close your eyes) to verify.";
+                                    wizardOverlay.innerHTML = `<span style="color: yellow;">👁️ Eyes Detected (Open)<br>Blink now to verify.</span>`;
+                                }
+                            } else {
+                                if (eyesWereOpen) {
+                                    eyesClosedSeen = true;
+                                    wizardOverlay.innerHTML = `<span style="color: #00A09D;">✓ Blink detected (Eyes Closed)... Keep looking!</span>`;
+                                } else {
+                                    statusBanner.textContent = "❌ EYES NOT DETECTED - Look straight at the camera.";
+                                    wizardOverlay.innerHTML = `<span style="color: #d9534f;">❌ Eyes Not Detected<br>Look straight at the box.</span>`;
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Blink verification error:", err);
+                    }
+                    
+                    // High-FPS sampling: check next frame in 100ms
+                    setTimeout(step0LivenessLoop, 100);
+                }
+                
+                step0LivenessLoop();
+            } else {
+                let secondsLeft = 3;
+                wizardOverlay.innerHTML = `Pose ${enrollmentStep + 1}/5: ${poseInstructions[enrollmentStep]}<br><span style="color: yellow; font-size: 1.1rem; font-weight: bold;">Capturing in ${secondsLeft}s...</span>`;
+                statusBanner.className = "status-banner status-warning";
+                statusBanner.textContent = `Wizard: Position for ${poseNames[enrollmentStep]}...`;
+                
+                if (countdownTimer) clearInterval(countdownTimer);
+                countdownTimer = setInterval(() => {
+                    secondsLeft--;
+                    if (secondsLeft > 0) {
+                        wizardOverlay.innerHTML = `Pose ${enrollmentStep + 1}/5: ${poseInstructions[enrollmentStep]}<br><span style="color: yellow; font-size: 1.1rem; font-weight: bold;">Capturing in ${secondsLeft}s...</span>`;
+                    } else {
+                        clearInterval(countdownTimer);
+                        countdownTimer = null;
+                        executeCapturePose();
+                    }
+                }, 1000);
+            }
+        }
+
+        async function executeCapturePose() {
+            statusBanner.textContent = "Storing pose features...";
+            const frameData = captureFrame();
+            try {
+                const response = await fetch('/api/enroll', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: enrollmentName,
+                        id: enrollmentId,
+                        image: frameData,
+                        step: enrollmentStep
+                    })
+                });
+                
+                const res = await response.json();
+                
+                if (res.status === "success") {
+                    wizardOverlay.innerHTML = `<span style="color: #00A09D;">✓ Success! Pose Captured.</span>`;
+                    showToast(`Captured ${poseNames[enrollmentStep]} pose.`, "success");
+                    enrollmentStep++;
+                    setTimeout(() => {
+                        runEnrollmentStep();
+                    }, 1500);
+                } else {
+                    showToast(`Capture failed: ${res.message}. Retrying pose.`, "error");
+                    runEnrollmentStep();
+                }
+            } catch (err) {
+                console.error("Enrollment upload error:", err);
+                showToast("Network error. Retrying pose.", "error");
+                runEnrollmentStep();
+            }
+        }
+
+        async function loadEnrolledUsers() {
+            try {
+                const response = await fetch('/api/users?t=' + new Date().getTime());
+                const data = await response.json();
+                const container = document.getElementById('enrolledUsersBox');
+                container.innerHTML = "";
+                
+                const deleteSelector = document.getElementById('deleteUserSelector');
+                deleteSelector.innerHTML = '<option value="">-- Select Profile --</option>';
+                
+                if (data.users.length === 0) {
+                    container.innerHTML = "<div style='font-size: 0.8rem; color: var(--text-muted);'>No registered database profiles.</div>";
+                    return;
+                }
+                
+                data.users.forEach(user => {
+                    // Populate delete selector
+                    const opt = document.createElement('option');
+                    opt.value = user.id;
+                    opt.textContent = `${user.id} - ${user.name}`;
+                    deleteSelector.appendChild(opt);
+                    
+                    // Populate badges
+                    const badge = document.createElement('span');
+                    badge.className = "user-badge";
+                    
+                    const img = document.createElement('img');
+                    img.className = "user-avatar-badge";
+                    img.src = `/static/avatars/${user.id}.jpg?t=${new Date().getTime()}`;
+                    img.onerror = () => {
+                        img.style.display = "none";
+                    };
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = `${user.id} - ${user.name}`;
+                    
+                    badge.appendChild(img);
+                    badge.appendChild(nameSpan);
+                    container.appendChild(badge);
+                });
+            } catch (err) {
+                console.error("Failed to load user list:", err);
+            }
+        }
+
+        async function deleteSelectedUser() {
+            const selector = document.getElementById('deleteUserSelector');
+            const userId = selector.value;
+            if (!userId) {
+                showToast("Please select a profile to delete.", "error");
+                return;
+            }
+            if (!confirm(`Confirm deleting profile '${userId}'? This cannot be undone.`)) {
+                return;
+            }
+            try {
+                const response = await fetch('/api/delete_user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                const res = await response.json();
+                if (res.status === "success") {
+                    showToast(res.message, "success");
+                    loadEnrolledUsers();
+                    loadAuditLogs();
+                } else {
+                    showToast(res.message || "Failed to delete profile.", "error");
+                }
+            } catch (err) {
+                console.error("Failed to delete user:", err);
+                showToast("Connection failed.", "error");
+            }
+        }
+
+        async function clearDatabase() {
+            if (!confirm("Confirm deleting all enrolled profiles? This will clear logs and cannot be undone.")) {
+                return;
+            }
+            try {
+                const response = await fetch('/api/clear', { method: 'POST' });
+                const res = await response.json();
+                if (res.status === "success") {
+                    showToast("Database & logs cleared successfully.", "success");
+                    loadEnrolledUsers();
+                    loadAuditLogs();
+                } else {
+                    showToast(res.message || "Failed to clear database.", "error");
+                }
+            } catch (err) {
+                console.error("Failed to clear database:", err);
+                showToast("Connection failed.", "error");
+            }
+        }
+
+        function exportAttendance() {
+            const start = document.getElementById('startDateFilter').value;
+            const end = document.getElementById('endDateFilter').value;
+            let url = '/api/attendance/download';
+            const params = [];
+            if (start) params.push(`start_date=${start}`);
+            if (end) params.push(`end_date=${end}`);
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+            showToast("Exporting attendance records...", "success");
+            setTimeout(() => {
+                location.href = url;
+            }, 500);
+        }
+
+        async function loadAuditLogs() {
+            try {
+                const response = await fetch('/api/logs?t=' + new Date().getTime());
+                const data = await response.json();
+                const container = document.getElementById('auditLogBox');
+                if (data.logs) {
+                    if (data.logs.length === 0) {
+                        container.innerHTML = "<div style='color: var(--text-muted);'>No security logs recorded.</div>";
+                        return;
+                    }
+                    container.innerHTML = data.logs.map(log => {
+                        let color = '#f8f9fa';
+                        if (log.includes('LOGIN')) color = '#00A09D';
+                        if (log.includes('LOGOUT')) color = '#d9534f';
+                        return `<div style="color: ${color};">${escapeHtml(log)}</div>`;
+                    }).join('');
+                    container.scrollTop = container.scrollHeight;
+                }
+            } catch (err) {
+                console.error("Failed to load audit logs:", err);
+            }
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        window.onload = () => {
+            loadThreshold();
+            loadEnrolledUsers();
+            loadAuditLogs();
+            setInterval(loadAuditLogs, 2000);
+        };
+    </script>
+</body>
+</html>
